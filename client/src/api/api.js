@@ -11,3 +11,12 @@ export const generateNote = async (input) => {
     return { generated_note: "[ERROR] Could not generate note." };
   }
 };
+export const getPubMedLinks = async (query) => {
+  try {
+    const response = await axios.post("http://127.0.0.1:8000/pubmed", { query });
+    return response.data.related_articles;
+  } catch (err) {
+    console.error("Error fetching PubMed articles:", err);
+    return [];
+  }
+};
