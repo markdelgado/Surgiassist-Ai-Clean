@@ -1,5 +1,6 @@
 import InputForm from "./components/InputForm";
 import RiskForm from "./components/Riskform";
+import PubMedSearch from "./components/PubMedSearch";
 
 function App() {
   return (
@@ -12,6 +13,8 @@ function App() {
         <InputForm />
         <hr className="my-12" />
         <RiskForm />
+        <hr className="my-12" />
+        //<PubMedSearch />
       </main>
     </div>
   );
