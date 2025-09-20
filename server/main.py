@@ -2,14 +2,17 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-import openai
 import os
 import requests
 from openai import OpenAI
 
-load_dotenv()  # Load keys from .env
-openai.api_key = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+load_dotenv()
+api_key = os.getenv("OPENAI_API_KEY")
+
+if not api_key:
+    raise ValueError("OPENAI_API_KEY not found in environment variables.")
+
+client = OpenAI(api_key=api_key)
 
 app = FastAPI()
 
