@@ -1,55 +1,171 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getPubMedLinks } from "../api/api";
 
 const PubMedSearch = () => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [relatedSearches, setRelatedSearches] = useState([]);
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  const formatArticleTitle = (url) => {
+    try {
+      const parsed = new URL(url);
+      const slug = decodeURIComponent(parsed.pathname.split("/").filter(Boolean).pop() || "");
+      if (!slug) return `Open article on ${parsed.hostname}`;
+      const cleaned = slug
+        .replace(/[-_]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!cleaned) return `Open article on ${parsed.hostname}`;
+      return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+    } catch {
+      return "Open article";
+    }
+  };
+
+  const extractDomain = (url) => {
+    try {
+      return new URL(url).hostname.replace(/^www\./, "");
+    } catch {
+      return "pubmed.ncbi.nlm.nih.gov";
+    }
+  };
+
+  const buildRelatedSearches = useCallback((value) => {
+      if (!value.trim()) return [];
+
+      const normalized = value.trim().replace(/\s+/g, " ");
+
+      const variants = [
+        `${normalized} outcomes`,
+        `${normalized} complications`,
+        `${normalized} postoperative recovery`,
+        `${normalized} risk factors`,
+        `${normalized} guidelines`,
+        `${normalized} best practices`,
+      ];
+
+      const unique = [];
+      const seen = new Set();
+
+      for (const item of variants) {
+        if (!seen.has(item.toLowerCase())) {
+          unique.push(item);
+          seen.add(item.toLowerCase());
+        }
+        if (unique.length === 5) break;
+      }
+
+      return unique;
+    }, []);
+
+  useEffect(() => {
+    setRelatedSearches(buildRelatedSearches(query));
+  }, [query, buildRelatedSearches]);
+
+  const runSearch = async (term) => {
+    if (!term.trim()) return;
     setLoading(true);
-    const links = await getPubMedLinks(query);
+    const links = await getPubMedLinks(term);
     setResults(links);
     setLoading(false);
   };
 
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    await runSearch(query);
+  };
+
+  const handleSuggestionClick = async (term) => {
+    setQuery(term);
+    await runSearch(term);
+  };
+
   return (
-    <div className="max-w-xl mx-auto p-4 mt-16">
-      <h2 className="text-2xl font-semibold mb-4">🔍 PubMed Literature Finder</h2>
-      <form onSubmit={handleSearch} className="flex space-x-2">
+    <section className="section-card" aria-labelledby="pubmed-search-title">
+      <div className="section-card__header">
+        <div className="section-card__icon" aria-hidden>
+          🔍
+        </div>
+        <div>
+          <h2 id="pubmed-search-title" className="section-card__title">
+            PubMed literature finder
+          </h2>
+          <p className="section-card__subtitle">
+            Surface the latest evidence tailored to your case with one click.
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSearch} className="search-bar" aria-label="Search PubMed">
         <input
           type="text"
           required
           placeholder="e.g. laparoscopic cholecystectomy complications"
-          className="w-full border rounded p-2"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          disabled={loading}
-        >
-          {loading ? "Searching..." : "Search"}
+        <button type="submit" className="button button--primary" disabled={loading}>
+          {loading ? "Searching…" : "Search"}
         </button>
       </form>
 
       {results.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-xl font-semibold mb-2">🧬 Related Articles:</h3>
-          <ul className="space-y-2 list-disc list-inside">
-            {results.map((url, idx) => (
-              <li key={idx}>
-                <a href={url} target="_blank" rel="noreferrer" className="text-blue-700 underline">
-                  {url}
-                </a>
-              </li>
-            ))}
+        <div className="result-panel result-panel--list" aria-live="polite">
+          <div className="result-panel__header">
+            <h3 className="result-panel__title">Related articles</h3>
+          </div>
+          <ul className="result-list">
+            {results.map((item, idx) => {
+              const link = typeof item === "string" ? item : item?.url;
+              if (!link) return null;
+
+              const titleSource =
+                typeof item === "string" ? undefined : item?.title;
+              const formattedTitle = titleSource?.trim() || formatArticleTitle(link);
+              const tooltip =
+                formattedTitle.length > 120
+                  ? `${formattedTitle.slice(0, 118)}…`
+                  : formattedTitle;
+
+              return (
+                <li key={`${idx}-${link}`}>
+                  <a
+                    href={link}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={tooltip}
+                    className="result-list__link"
+                  >
+                    <span className="result-list__title">{formattedTitle}</span>
+                    <span className="result-list__domain">{extractDomain(link)}</span>
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
-    </div>
+
+      {relatedSearches.length > 0 && (
+        <div className="related-searches" aria-label="Suggested related searches">
+          <p className="related-searches__title">People also search for</p>
+          <div className="chip-group">
+            {relatedSearches.map((term) => (
+              <button
+                type="button"
+                key={term}
+                className="chip"
+                onClick={() => handleSuggestionClick(term)}
+                disabled={loading}
+              >
+                {term}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
   );
 };
 

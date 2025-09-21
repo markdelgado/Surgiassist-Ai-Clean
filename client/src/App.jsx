@@ -1,21 +1,48 @@
+import "./App.css";
 import InputForm from "./components/InputForm";
 import RiskForm from "./components/Riskform";
 import PubMedSearch from "./components/PubMedSearch";
 
 function App() {
   return (
-    <div className="min-h-screen bg-white text-black">
-      <header className="p-4 shadow bg-gray-100">
-        <h1 className="text-3xl font-bold">SurgiAssist AI™</h1>
-        <p className="text-sm text-gray-500">Your Surgical Copilot</p>
+    <div className="app-shell">
+      <header className="hero">
+        <div className="hero__background" aria-hidden />
+        <div className="hero__content container">
+          <span className="hero__badge">SurgiAssist AI™</span>
+          <h1 className="hero__title">A faster handoff between clinic and OR</h1>
+          <p className="hero__subtitle">
+            Generate surgical notes, quantify risk, and surface literature insights without leaving your workflow.
+          </p>
+          <div className="hero__cta">
+            <div>
+              <span className="hero__stat">Minutes saved</span>
+              <strong>15+</strong>
+            </div>
+            <div>
+              <span className="hero__stat">Supported specialities</span>
+              <strong>12</strong>
+            </div>
+            <div>
+              <span className="hero__stat">Clinicians onboard</span>
+              <strong>480</strong>
+            </div>
+          </div>
+        </div>
       </header>
-      <main className="p-6 space-y-16">
+
+      <main className="main-sections container">
         <InputForm />
-        <hr className="my-12" />
         <RiskForm />
-        <hr className="my-12" />
-        //<PubMedSearch />
+        <PubMedSearch />
       </main>
+
+      <footer className="site-footer">
+        <div className="container site-footer__inner">
+          <p>© {new Date().getFullYear()} SurgiAssist AI. Built for smarter surgical teams.</p>
+          <a href="mailto:team@surgiassist.ai">team@surgiassist.ai</a>
+        </div>
+      </footer>
     </div>
   );
 }

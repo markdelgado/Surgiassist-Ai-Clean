@@ -20,59 +20,80 @@ const InputForm = () => {
     setLoading(false);
   };
   const exportNotePDF = () => {
-  const element = document.getElementById("note-pdf");
-  html2pdf().from(element).save("preop-note.pdf");
-};
+    if (!noteResult.trim()) return;
+
+    const noteElement = document.getElementById("note-pdf");
+    if (!noteElement) return;
+
+    const opt = {
+      margin: 0.5,
+      filename: "preop-note.pdf",
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+    };
+
+    html2pdf().set(opt).from(noteElement).save();
+  };
 
   return (
-    <div className="max-w-xl mx-auto p-4">
-      <h2 className="text-2xl font-semibold mb-4">🧠 Generate Pre-Op Note</h2>
+    <section className="section-card" aria-labelledby="note-generator-title">
+      <div className="section-card__header">
+        <div className="section-card__icon" aria-hidden>
+          🧠
+        </div>
+        <div>
+          <h2 id="note-generator-title" className="section-card__title">
+            Generate Pre-Op Note
+          </h2>
+          <p className="section-card__subtitle">
+            Turn a quick patient summary into a clean briefing for the surgical team.
+          </p>
+        </div>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <textarea
-          rows={4}
-          required
-          placeholder="Patient summary (e.g. 65yo male with diabetes...)"
-          className="w-full border rounded p-2"
-          value={patientSummary}
-          onChange={(e) => setPatientSummary(e.target.value)}
-        />
+      <form onSubmit={handleSubmit} className="form-grid" aria-label="Generate pre-operative note">
+        <label className="input-field">
+          <span className="input-field__label">Patient summary</span>
+          <textarea
+            rows={5}
+            required
+            placeholder="e.g. 65yo male with diabetes presenting with acute cholecystitis..."
+            value={patientSummary}
+            onChange={(e) => setPatientSummary(e.target.value)}
+          />
+        </label>
 
-        <input
-          type="text"
-          required
-          placeholder="Procedure (e.g. laparoscopic cholecystectomy)"
-          className="w-full border rounded p-2"
-          value={procedure}
-          onChange={(e) => setProcedure(e.target.value)}
-        />
+        <label className="input-field">
+          <span className="input-field__label">Planned procedure</span>
+          <input
+            type="text"
+            required
+            placeholder="e.g. laparoscopic cholecystectomy"
+            value={procedure}
+            onChange={(e) => setProcedure(e.target.value)}
+          />
+        </label>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          {loading ? "Generating..." : "Generate Note"}
+        <button type="submit" disabled={loading} className="button button--primary">
+          {loading ? "Generating note…" : "Generate note"}
         </button>
       </form>
-    {noteResult && (
-  <div className="mt-6">
-    <h3 className="text-xl font-semibold mb-2">📄 AI-Generated Note</h3>
-    <div
-      id="note-pdf"
-      className="whitespace-pre-wrap bg-gray-100 p-4 rounded border"
-    >
-      {noteResult}
-    </div>
-    <button
-      onClick={exportNotePDF}
-      className="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-    >
-      Download PDF
-    </button>
-  </div>
-)}
-    </div>
+
+      {noteResult && (
+        <div className="result-panel" aria-live="polite">
+          <div className="result-panel__header">
+            <h3 className="result-panel__title">AI-generated note</h3>
+            <button onClick={exportNotePDF} className="button button--ghost">
+              Download PDF
+            </button>
+          </div>
+          <div id="note-pdf" className="result-panel__body">
+            <pre>{noteResult}</pre>
+          </div>
+        </div>
+      )}
+    </section>
   );
 };
 

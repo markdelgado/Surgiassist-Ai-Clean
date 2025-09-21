@@ -54,96 +54,134 @@ const RiskForm = () => {
     }
   };
   const exportRiskPDF = () => {
-  const element = document.getElementById("risk-pdf");
-  html2pdf().from(element).save("risk-estimate.pdf");
-};
+    const element = document.getElementById("risk-pdf");
+    if (!element) return;
+
+    const options = {
+      margin: 0.5,
+      filename: "risk-estimate.pdf",
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+    };
+
+    html2pdf().set(options).from(element).save();
+  };
 
   return (
-    <div className="max-w-xl mx-auto p-4 mt-12">
-      <h2 className="text-2xl font-semibold mb-4">📊 Surgical Risk Calculator</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="number"
-          name="age"
-          placeholder="Age"
-          required
-          value={formData.age}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-        />
-        <input
-          type="number"
-          step="0.1"
-          name="bmi"
-          placeholder="BMI"
-          required
-          value={formData.bmi}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-        />
-        <input
-          type="text"
-          name="comorbidities"
-          placeholder="Comorbidities (comma-separated)"
-          value={formData.comorbidities}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-        />
-        <input
-          type="text"
-          name="procedure"
-          placeholder="Procedure name"
-          value={formData.procedure}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-        />
+    <section className="section-card" aria-labelledby="risk-calculator-title">
+      <div className="section-card__header">
+        <div className="section-card__icon" aria-hidden>
+          📊
+        </div>
+        <div>
+          <h2 id="risk-calculator-title" className="section-card__title">
+            Surgical risk calculator
+          </h2>
+          <p className="section-card__subtitle">
+            Estimate post-operative complications with quick patient and lab inputs.
+          </p>
+        </div>
+      </div>
 
-        <input
-          type="number"
-          step="0.1"
-          name="bilirubin"
-          placeholder="Bilirubin"
-          value={formData.labs.bilirubin}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-        />
-        <input
-          type="number"
-          step="0.1"
-          name="alt"
-          placeholder="ALT"
-          value={formData.labs.alt}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
-        />
+      <form onSubmit={handleSubmit} className="form-grid" aria-label="Calculate surgical risk">
+        <div className="form-row">
+          <label className="input-field">
+            <span className="input-field__label">Age</span>
+            <input
+              type="number"
+              name="age"
+              placeholder="e.g. 74"
+              required
+              value={formData.age}
+              onChange={handleChange}
+              min="0"
+            />
+          </label>
+          <label className="input-field">
+            <span className="input-field__label">BMI</span>
+            <input
+              type="number"
+              step="0.1"
+              name="bmi"
+              placeholder="e.g. 28.4"
+              required
+              value={formData.bmi}
+              onChange={handleChange}
+              min="0"
+            />
+          </label>
+        </div>
 
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          disabled={loading}
-        >
-          {loading ? "Calculating..." : "Calculate Risk"}
+        <label className="input-field">
+          <span className="input-field__label">Comorbidities</span>
+          <input
+            type="text"
+            name="comorbidities"
+            placeholder="e.g. diabetes, hypertension"
+            value={formData.comorbidities}
+            onChange={handleChange}
+          />
+          <span className="input-field__hint">Separate each condition with a comma.</span>
+        </label>
+
+        <label className="input-field">
+          <span className="input-field__label">Procedure name</span>
+          <input
+            type="text"
+            name="procedure"
+            placeholder="e.g. laparoscopic colectomy"
+            value={formData.procedure}
+            onChange={handleChange}
+          />
+        </label>
+
+        <div className="form-row">
+          <label className="input-field">
+            <span className="input-field__label">Bilirubin</span>
+            <input
+              type="number"
+              step="0.1"
+              name="bilirubin"
+              placeholder="mg/dL"
+              value={formData.labs.bilirubin}
+              onChange={handleChange}
+              min="0"
+            />
+          </label>
+          <label className="input-field">
+            <span className="input-field__label">ALT</span>
+            <input
+              type="number"
+              step="0.1"
+              name="alt"
+              placeholder="U/L"
+              value={formData.labs.alt}
+              onChange={handleChange}
+              min="0"
+            />
+          </label>
+        </div>
+
+        <button type="submit" className="button button--primary" disabled={loading}>
+          {loading ? "Calculating risk…" : "Calculate risk"}
         </button>
       </form>
 
       {riskResult && (
-  <div className="mt-6">
-    <h3 className="text-xl font-semibold">💡 Estimated Risk:</h3>
-    <div
-      id="risk-pdf"
-      className="text-lg mt-2 bg-gray-100 p-4 rounded border"
-    >
-      {riskResult}
-    </div>
-    <button
-      onClick={exportRiskPDF}
-      className="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-    >
-      Download PDF
-    </button>
-  </div>
-)}
-    </div>
+        <div className="result-panel" aria-live="polite">
+          <div className="result-panel__header">
+            <h3 className="result-panel__title">Estimated complication risk</h3>
+            <button onClick={exportRiskPDF} className="button button--ghost">
+              Download PDF
+            </button>
+          </div>
+          <div id="risk-pdf" className="result-panel__body">
+            <p>{riskResult}</p>
+          </div>
+        </div>
+      )}
+    </section>
   );
 };
 
