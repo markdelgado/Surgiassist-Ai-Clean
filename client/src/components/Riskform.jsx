@@ -61,11 +61,42 @@ const RiskForm = () => {
       margin: 0.5,
       filename: "risk-estimate.pdf",
       image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2 },
+      html2canvas: {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        scrollY: -window.scrollY,
+      },
       jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
     };
 
-    html2pdf().set(options).from(element).save();
+    const prevStyles = {
+      background: element.style.background,
+      color: element.style.color,
+      maxHeight: element.style.maxHeight,
+      overflow: element.style.overflow,
+      boxShadow: element.style.boxShadow,
+    };
+
+    element.style.background = "#ffffff";
+    element.style.color = "#0f172a";
+    element.style.maxHeight = "none";
+    element.style.overflow = "visible";
+    element.style.boxShadow = "none";
+
+    html2pdf()
+      .set(options)
+      .from(element)
+      .save()
+      .catch((error) => {
+        console.error("Error exporting risk PDF", error);
+      })
+      .finally(() => {
+        element.style.background = prevStyles.background;
+        element.style.color = prevStyles.color;
+        element.style.maxHeight = prevStyles.maxHeight;
+        element.style.overflow = prevStyles.overflow;
+        element.style.boxShadow = prevStyles.boxShadow;
+      });
   };
 
   return (

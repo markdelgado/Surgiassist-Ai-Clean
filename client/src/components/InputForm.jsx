@@ -29,11 +29,63 @@ const InputForm = () => {
       margin: 0.5,
       filename: "preop-note.pdf",
       image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2 },
+      html2canvas: {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        scrollY: -window.scrollY,
+      },
       jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
     };
 
-    html2pdf().set(opt).from(noteElement).save();
+    const prevStyles = {
+      background: noteElement.style.background,
+      color: noteElement.style.color,
+      maxHeight: noteElement.style.maxHeight,
+      overflow: noteElement.style.overflow,
+      boxShadow: noteElement.style.boxShadow,
+    };
+
+    noteElement.style.background = "#ffffff";
+    noteElement.style.color = "#0f172a";
+    noteElement.style.maxHeight = "none";
+    noteElement.style.overflow = "visible";
+    noteElement.style.boxShadow = "none";
+
+    const pre = noteElement.querySelector("pre");
+    const prePrev = pre
+      ? {
+          background: pre.style.background,
+          color: pre.style.color,
+          margin: pre.style.margin,
+        }
+      : null;
+
+    if (pre) {
+      pre.style.background = "transparent";
+      pre.style.color = "#0f172a";
+      pre.style.margin = "0";
+    }
+
+    html2pdf()
+      .set(opt)
+      .from(noteElement)
+      .save()
+      .catch((error) => {
+        console.error("Error exporting note PDF", error);
+      })
+      .finally(() => {
+        noteElement.style.background = prevStyles.background;
+        noteElement.style.color = prevStyles.color;
+        noteElement.style.maxHeight = prevStyles.maxHeight;
+        noteElement.style.overflow = prevStyles.overflow;
+        noteElement.style.boxShadow = prevStyles.boxShadow;
+
+        if (pre && prePrev) {
+          pre.style.background = prePrev.background;
+          pre.style.color = prePrev.color;
+          pre.style.margin = prePrev.margin;
+        }
+      });
   };
 
   return (
