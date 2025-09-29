@@ -353,6 +353,12 @@
   color: var(--text-tertiary);
 }
 
+.result-list__summary {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
 .related-searches {
   margin-top: 1.75rem;
   display: flex;

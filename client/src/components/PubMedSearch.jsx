@@ -127,6 +127,8 @@ const PubMedSearch = () => {
                 formattedTitle.length > 120
                   ? `${formattedTitle.slice(0, 118)}…`
                   : formattedTitle;
+              const summaryText =
+                typeof item === "string" ? "" : item?.summary?.trim();
 
               return (
                 <li key={`${idx}-${link}`}>
@@ -139,6 +141,9 @@ const PubMedSearch = () => {
                   >
                     <span className="result-list__title">{formattedTitle}</span>
                     <span className="result-list__domain">{extractDomain(link)}</span>
+                    {summaryText && (
+                      <span className="result-list__summary">{summaryText}</span>
+                    )}
                   </a>
                 </li>
               );

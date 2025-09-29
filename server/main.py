@@ -66,28 +66,68 @@ def generate_note(data: NoteInput):
     )
 
     return {"generated_note": response.choices[0].message.content.strip()}
+
 @app.post("/pubmed")
 def get_pubmed_summary(data: PubMedInput):
-    base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
-    params = {
-        "db": "pubmed",
-        "term": data.query,
-        "retmax": 3,
-        "retmode": "json"
-    }
-    r = requests.get(base_url, params=params)
-    ids = r.json().get("esearchresult", {}).get("idlist", [])
-
-    summaries = []
-    for pmid in ids:
-        fetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-        fetch_params = {
+    try:
+        base_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+        params = {
             "db": "pubmed",
-            "id": pmid,
-            "retmode": "xml"
+            "term": data.query,
+            "retmax": 8,
+            "retmode": "json",
+            "sort": "relevance"
         }
-        fetch = requests.get(fetch_url, params=fetch_params)
-        if fetch.ok:
-            summaries.append(f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/")
-    
-    return {"related_articles": summaries}
+
+        search_response = requests.get(base_url, params=params, timeout=10)
+        search_response.raise_for_status()
+        ids = search_response.json().get("esearchresult", {}).get("idlist", [])
+
+        if not ids:
+            return {"related_articles": []}
+
+        summary_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
+        summary_params = {
+            "db": "pubmed",
+            "id": ",".join(ids),
+            "retmode": "json"
+        }
+
+        summary_response = requests.get(summary_url, params=summary_params, timeout=10)
+        summary_response.raise_for_status()
+        summary_json = summary_response.json().get("result", {})
+
+        articles = []
+        for pmid in summary_json.get("uids", [])[:5]:
+            record = summary_json.get(pmid, {})
+            title = record.get("title", "")
+            journal = record.get("fulljournalname") or record.get("source")
+            pubdate = record.get("pubdate") or record.get("sortpubdate")
+            authors = record.get("authors", [])
+
+            author_names = []
+            for author in authors[:3]:
+                if isinstance(author, dict) and author.get("name"):
+                    author_names.append(author["name"])
+                elif isinstance(author, str):
+                    author_names.append(author)
+
+            summary_bits = []
+            if journal:
+                summary_bits.append(journal)
+            if pubdate:
+                summary_bits.append(pubdate)
+            if author_names:
+                summary_bits.append(", ".join(author_names))
+
+            articles.append({
+                "pmid": pmid,
+                "title": title.strip(),
+                "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
+                "summary": " • ".join(summary_bits)
+            })
+
+        return {"related_articles": articles}
+    except requests.RequestException as exc:
+        print("PubMed API error", exc)
+        return {"related_articles": []}
