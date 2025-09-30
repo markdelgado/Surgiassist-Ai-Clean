@@ -7,7 +7,9 @@ const InputForm = () => {
   const [procedure, setProcedure] = useState("");
   const [labsSummary, setLabsSummary] = useState("");
   const [attachments, setAttachments] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
   const attachmentsRef = useRef([]);
+  const dragCounter = useRef(0);
   const [noteResult, setNoteResult] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -23,13 +25,15 @@ const InputForm = () => {
     };
   }, []);
 
-  const handleFilesSelected = (event) => {
-    const files = Array.from(event.target.files || []);
-    if (!files.length) return;
+  const addFiles = (fileList) => {
+    const incoming = Array.from(fileList || []);
+    if (!incoming.length) return;
 
-    const mapped = files.map((file) => {
-      const id = `${file.name}-${file.lastModified}-${crypto.randomUUID?.() || Math.random()}`;
-      const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : "";
+    const mapped = incoming.map((file) => {
+      const id = `${file.name}-${file.lastModified}-${
+        typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random()
+      }`;
+      const previewUrl = file.type?.startsWith("image/") ? URL.createObjectURL(file) : "";
       return {
         id,
         file,
@@ -42,6 +46,10 @@ const InputForm = () => {
     });
 
     setAttachments((prev) => [...prev, ...mapped]);
+  };
+
+  const handleFilesSelected = (event) => {
+    addFiles(event.target.files);
     event.target.value = "";
   };
 
@@ -58,6 +66,41 @@ const InputForm = () => {
       if (removed?.previewUrl) URL.revokeObjectURL(removed.previewUrl);
       return next;
     });
+  };
+
+  const handleDragEnter = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragCounter.current += 1;
+    if (!isDragging) setIsDragging(true);
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!isDragging) setIsDragging(true);
+  };
+
+  const handleDragLeave = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragCounter.current = Math.max(dragCounter.current - 1, 0);
+    if (dragCounter.current === 0) setIsDragging(false);
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+
+    if (event.dataTransfer?.files?.length) {
+      addFiles(event.dataTransfer.files);
+    }
+
+    if (event.dataTransfer) {
+      event.dataTransfer.clearData();
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -199,7 +242,18 @@ const InputForm = () => {
           </span>
         </label>
 
-        <div className="attachment-section">
+        <div
+          className={`attachment-section ${isDragging ? "attachment-section--dragging" : ""}`}
+          onDragEnter={handleDragEnter}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          {isDragging && (
+            <div className="attachment-drop-hint" aria-hidden>
+              <span>Drop files to attach</span>
+            </div>
+          )}
           <div className="attachment-section__header">
             <div>
               <h3>Supporting files</h3>
