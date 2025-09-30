@@ -14,7 +14,8 @@ const RiskForm = () => {
     },
   });
 
-  const [riskResult, setRiskResult] = useState("");
+  const [riskResult, setRiskResult] = useState(null);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -22,7 +23,10 @@ const RiskForm = () => {
     if (["bilirubin", "alt"].includes(name)) {
       setFormData((prev) => ({
         ...prev,
-        labs: { ...prev.labs, [name]: parseFloat(value) || 0 },
+        labs: {
+          ...prev.labs,
+          [name]: value === "" ? "" : parseFloat(value),
+        },
       }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
@@ -33,21 +37,28 @@ const RiskForm = () => {
     e.preventDefault();
     setLoading(true);
 
+    const cleanedLabs = Object.fromEntries(
+      Object.entries(formData.labs).filter(([, value]) => value !== "" && value !== null && !Number.isNaN(value))
+    );
+
     const payload = {
       age: parseInt(formData.age),
       bmi: parseFloat(formData.bmi),
       comorbidities: formData.comorbidities
         .split(",")
-        .map((item) => item.trim().toLowerCase()),
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean),
       procedure: formData.procedure,
-      labs: formData.labs,
+      labs: cleanedLabs,
     };
 
     try {
       const res = await axios.post("http://127.0.0.1:8000/risk", payload);
-      setRiskResult(res.data.estimated_complication_risk);
+      setRiskResult(res.data);
+      setError("");
     } catch (err) {
-      setRiskResult("[ERROR] Could not calculate risk.");
+      setRiskResult(null);
+      setError("[ERROR] Could not calculate risk.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -98,6 +109,12 @@ const RiskForm = () => {
         element.style.boxShadow = prevStyles.boxShadow;
       });
   };
+
+  const percentValue = riskResult?.risk_percent;
+  const numericPercent =
+    typeof percentValue === "number" ? percentValue : Number(percentValue);
+  const formattedRiskPercent =
+    Number.isFinite(numericPercent) ? `${numericPercent.toFixed(1)}%` : "—";
 
   return (
     <section className="section-card" aria-labelledby="risk-calculator-title">
@@ -199,6 +216,14 @@ const RiskForm = () => {
         </button>
       </form>
 
+      {error && (
+        <div className="result-panel" role="alert">
+          <div className="result-panel__body">
+            <p>{error}</p>
+          </div>
+        </div>
+      )}
+
       {riskResult && (
         <div className="result-panel" aria-live="polite">
           <div className="result-panel__header">
@@ -207,8 +232,33 @@ const RiskForm = () => {
               Download PDF
             </button>
           </div>
-          <div id="risk-pdf" className="result-panel__body">
-            <p>{riskResult}</p>
+          <div id="risk-pdf" className="result-panel__body risk-summary">
+            <div className="risk-summary__score">
+              <div>
+                <span className="risk-summary__value">{formattedRiskPercent}</span>
+                <span className={`risk-summary__chip risk-summary__chip--${(riskResult.risk_level || "unknown").toLowerCase()}`}>
+                  {riskResult.risk_level || "Unknown"}
+                </span>
+              </div>
+            </div>
+
+            <div className="risk-summary__section">
+              <h4>Key drivers</h4>
+              <ul>
+                {(riskResult.key_drivers || ["No drivers identified."]).map((item, idx) => (
+                  <li key={`driver-${idx}`}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="risk-summary__section">
+              <h4>Optimization steps</h4>
+              <ul>
+                {(riskResult.optimization_steps || ["No optimization steps provided."]).map((item, idx) => (
+                  <li key={`opt-${idx}`}>{item}</li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       )}
