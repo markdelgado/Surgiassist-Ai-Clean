@@ -21,7 +21,7 @@ Full-stack assistant that accelerates pre-operative workflows:
 
 ## Features
 
-- **Pre-op note generator** – Clinicians feed a patient summary, planned procedure, labs/imaging highlights, and optional supporting files (PDFs, images). GPT produces a six-section EMR-ready note with referenced attachments. Notes can be exported to PDF.
+- **Pre-op note ge nerator** – Clinicians feed a patient summary, planned procedure, labs/imaging highlights, and optional supporting files (PDFs, images). GPT produces a six-section EMR-ready note with referenced attachments. Notes can be exported to PDF.
 - **Risk assessment** – Uses GPT to return risk percentage, level, key drivers, and optimization steps. Structured UI renders the JSON response with color-coded chips and downloadable PDF.
 - **PubMed evidence** – Queries NCBI e-utils, summarizes the top five relevance-ranked articles with titles, journal/date/authors, and offers related search chips.
 - **Delightful UI** – Tailwind-inspired styling with cards, gradient hero, drag-and-drop attachments, and responsive layout.
