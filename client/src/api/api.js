@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE = "http://127.0.0.1:8000"; 
+const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8000"; 
 
 export const generateNote = async (input) => {
   try {
@@ -13,7 +13,7 @@ export const generateNote = async (input) => {
 };
 export const getPubMedLinks = async (query) => {
   try {
-    const response = await axios.post("http://127.0.0.1:8000/pubmed", { query });
+    const response = await axios.post(`${API_BASE}/pubmed`, { query });
     return response.data.related_articles;
   } catch (err) {
     console.error("Error fetching PubMed articles:", err);

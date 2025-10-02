@@ -18,11 +18,18 @@ client = OpenAI(api_key=api_key)
 app = FastAPI()
 
 # CORS for local frontend access
+raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
+if raw_origins == "*":
+    allowed_origins: list[str] | str = "*"
+else:
+    allowed_origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
 # ========== Data Models ==========
