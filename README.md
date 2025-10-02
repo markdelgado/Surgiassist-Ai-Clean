@@ -1,9 +1,9 @@
 # SurgiAssist AI
 
 Full-stack assistant that accelerates pre-operative workflows:
--generate structured notes
--estimate surgical risk
--surface PubMed evidence from a single interface.
+- generate structured notes
+- estimate surgical risk
+- surface PubMed evidence from a single interface.
 
 ## Project structure
 
