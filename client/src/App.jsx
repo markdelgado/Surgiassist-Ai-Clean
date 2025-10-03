@@ -9,7 +9,9 @@ function App() {
       <header className="hero">
         <div className="hero__background" aria-hidden />
         <div className="hero__content container">
-          <span className="hero__badge">SurgiAssist AI™</span>
+          <span className="hero__badge">
+            <img src="/fullLogo.png" alt="" className="hero__badge-icon" />
+          </span>
           <h1 className="hero__title">A faster handoff between clinic and OR</h1>
           <p className="hero__subtitle">
             Generate surgical notes, quantify risk, and surface literature insights without leaving your workflow.
