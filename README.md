@@ -21,7 +21,7 @@ Full-stack assistant that accelerates pre-operative workflows:
 
 ## Features
 
-- **Pre-op note ge nerator** – Clinicians feed a patient summary, planned procedure, labs/imaging highlights, and optional supporting files (PDFs, images). GPT produces a six-section EMR-ready note with referenced attachments. Notes can be exported to PDF.
+- **Pre-op note generator** – Clinicians feed a patient summary, planned procedure, labs/imaging highlights, and optional supporting files (PDFs, images). GPT produces a six-section EMR-ready note with referenced attachments. Notes can be exported to PDF.
 - **Risk assessment** – Uses GPT to return risk percentage, level, key drivers, and optimization steps. Structured UI renders the JSON response with color-coded chips and downloadable PDF.
 - **PubMed evidence** – Queries NCBI e-utils, summarizes the top five relevance-ranked articles with titles, journal/date/authors, and offers related search chips.
 - **Delightful UI** – Tailwind-inspired styling with cards, gradient hero, drag-and-drop attachments, and responsive layout.
@@ -46,8 +46,28 @@ The React app expects the API at `http://127.0.0.1:8000`; configure `VITE_API_BA
 
 ## Deployment notes
 
-- Host the backend on Render/Railway/Fly/Cloud Run. Expose `uvicorn main:app --host 0.0.0.0 --port $PORT`. Inject secrets via the platform settings and narrow CORS to your frontend domain.
-- Deploy the frontend to Netlify/Vercel/Cloudflare Pages. Build command `npm run build`, publish directory `dist`. Set `VITE_API_BASE` to the live backend URL.
+### Backend (Render Web Service)
+
+1. **Create service**: New → Web Service → pick repo → root directory `server/`.
+2. **Build command**: `pip install -r requirements.txt`
+3. **Start command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+4. **Environment**:
+   - `OPENAI_API_KEY` – secret from the OpenAI dashboard.
+   - `ALLOWED_ORIGINS` – comma-separated list of allowed front-end origins (e.g. `https://surgiassist.onrender.com`). Leave unset during prototyping, then lock it down.
+5. **Python version**: Render’s settings → Advanced → set to 3.11 (or add `.python-version`).
+6. Manual redeploy after updating env vars or dependencies (`Clear cache & deploy`).
+
+### Frontend (Render Static Site)
+
+1. **Create site**: New → Static Site → root directory `client/`.
+2. **Build command**: `npm install && npm run build`
+3. **Publish directory**: `dist`
+4. **Environment variable**: `VITE_API_BASE=https://<your-backend>.onrender.com`
+5. Trigger a deploy. Render issues a public URL (e.g. `https://surgiassist-frontend.onrender.com`).
+6. Update the backend `ALLOWED_ORIGINS` with the final frontend URL and redeploy the API.
+
+If you adopt a custom domain, add the HTTPS origin to `ALLOWED_ORIGINS`, update DNS, and redeploy both tiers if needed.
+
 - Confirm PDFs still render correctly server-side (no headless support needed) and that PubMed API calls respect NCBI rate limits.
 
 ## Future enhancements
