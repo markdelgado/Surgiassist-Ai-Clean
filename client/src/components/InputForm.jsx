@@ -118,7 +118,11 @@ const InputForm = () => {
       })),
     };
     const data = await generateNote(input);
-    setNoteResult(data.generated_note);
+    const cleanedNote =
+      typeof data.generated_note === "string"
+        ? data.generated_note.replace(/\*/g, "").trim()
+        : "";
+    setNoteResult(cleanedNote);
     setLoading(false);
   };
   const exportNotePDF = () => {
