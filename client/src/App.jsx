@@ -42,7 +42,6 @@ function App() {
       <footer className="site-footer">
         <div className="container site-footer__inner">
           <p>© {new Date().getFullYear()} SurgiAssist AI. Built for smarter surgical teams.</p>
-          <a href="mailto:team@surgiassist.ai">team@surgiassist.ai</a>
         </div>
       </footer>
     </div>
