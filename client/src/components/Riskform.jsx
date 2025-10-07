@@ -2,6 +2,8 @@ import { useState } from "react";
 import axios from "axios";
 import html2pdf from "html2pdf.js";
 
+const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8000";
+
 const RiskForm = () => {
   const [formData, setFormData] = useState({
     age: "",
@@ -53,7 +55,7 @@ const RiskForm = () => {
     };
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/risk", payload);
+      const res = await axios.post(`${API_BASE}/risk`, payload);
       setRiskResult(res.data);
       setError("");
     } catch (err) {
