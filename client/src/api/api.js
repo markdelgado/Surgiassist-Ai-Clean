@@ -20,3 +20,13 @@ export const getPubMedLinks = async (query) => {
     return [];
   }
 };
+
+export const generateEvidenceBundle = async (payload) => {
+  try {
+    const response = await axios.post(`${API_BASE}/evidence_bundle`, payload);
+    return response.data;
+  } catch (err) {
+    console.error("Error generating evidence bundle:", err);
+    throw err;
+  }
+};

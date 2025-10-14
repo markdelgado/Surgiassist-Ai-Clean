@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { generateNote } from "../api/api";
 import html2pdf from "html2pdf.js";
+import useAppContext from "../hooks/useAppContext";
 
 const InputForm = () => {
   const [patientSummary, setPatientSummary] = useState("");
@@ -12,6 +13,7 @@ const InputForm = () => {
   const dragCounter = useRef(0);
   const [noteResult, setNoteResult] = useState("");
   const [loading, setLoading] = useState(false);
+  const { setNoteResult: setGlobalNoteResult } = useAppContext();
 
   useEffect(() => {
     attachmentsRef.current = attachments;
@@ -123,6 +125,7 @@ const InputForm = () => {
         ? data.generated_note.replace(/\*/g, "").trim()
         : "";
     setNoteResult(cleanedNote);
+    setGlobalNoteResult(cleanedNote);
     setLoading(false);
   };
   const exportNotePDF = () => {
