@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import html2pdf from "html2pdf.js";
+import useAppContext from "../hooks/useAppContext";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8000";
 
@@ -19,6 +20,7 @@ const RiskForm = () => {
   const [riskResult, setRiskResult] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { setRiskResult: setGlobalRiskResult } = useAppContext();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -57,9 +59,11 @@ const RiskForm = () => {
     try {
       const res = await axios.post(`${API_BASE}/risk`, payload);
       setRiskResult(res.data);
+      setGlobalRiskResult(res.data);
       setError("");
     } catch (err) {
       setRiskResult(null);
+      setGlobalRiskResult(null);
       setError("[ERROR] Could not calculate risk.");
       console.error(err);
     } finally {

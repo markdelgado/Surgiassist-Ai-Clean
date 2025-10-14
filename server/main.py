@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -6,6 +6,7 @@ import os
 import requests
 from openai import OpenAI
 import json
+import xml.etree.ElementTree as ET
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
@@ -56,6 +57,15 @@ class NoteInput(BaseModel):
 
 class PubMedInput(BaseModel):
     query: str
+
+class EvidenceArticle(BaseModel):
+    pmid: str
+    title: str | None = None
+    summary: str | None = None
+
+class EvidenceBundleInput(BaseModel):
+    case_context: str | None = None
+    articles: list[EvidenceArticle]
 
 # ========== Routes ==========
 
@@ -230,3 +240,155 @@ def get_pubmed_summary(data: PubMedInput):
     except requests.RequestException as exc:
         print("PubMed API error", exc)
         return {"related_articles": []}
+
+
+def fetch_pubmed_details(pmid: str) -> dict:
+    """Fetch detailed metadata for a PubMed article, including abstract text."""
+    efetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+    params = {
+        "db": "pubmed",
+        "id": pmid,
+        "retmode": "xml",
+    }
+
+    try:
+        response = requests.get(efetch_url, params=params, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        print(f"PubMed fetch error for PMID {pmid}", exc)
+        return {}
+
+    try:
+        root = ET.fromstring(response.text)
+    except ET.ParseError as exc:
+        print(f"PubMed XML parse error for PMID {pmid}", exc)
+        return {}
+
+    article_node = root.find(".//PubmedArticle")
+    if article_node is None:
+        return {}
+
+    def get_text(path: str) -> str:
+        node = article_node.find(path)
+        if node is None:
+            return ""
+        text = "".join(node.itertext()).strip()
+        return text
+
+    title = get_text(".//ArticleTitle")
+    journal = get_text(".//Journal/Title")
+
+    pubdate_node = article_node.find(".//JournalIssue/PubDate")
+    pub_date_parts: list[str] = []
+    if pubdate_node is not None:
+        for tag in ("Year", "Month", "Day"):
+            child = pubdate_node.find(tag)
+            if child is not None and child.text:
+                pub_date_parts.append(child.text.strip())
+    pub_date = "-".join(pub_date_parts)
+
+    abstract_sections = []
+    for abstract in article_node.findall(".//Abstract/AbstractText"):
+        label = abstract.attrib.get("Label")
+        text = "".join(abstract.itertext()).strip()
+        if not text:
+            continue
+        if label:
+            abstract_sections.append(f"{label}: {text}")
+        else:
+            abstract_sections.append(text)
+
+    abstract_text = "\n".join(abstract_sections).strip()
+
+    return {
+        "pmid": pmid,
+        "title": title,
+        "journal": journal,
+        "pub_date": pub_date,
+        "abstract": abstract_text,
+    }
+
+
+@app.post("/evidence_bundle")
+def generate_evidence_bundle(data: EvidenceBundleInput):
+    if not data.articles:
+        return {"overview": "", "articles": []}
+
+    detailed_articles = []
+    for article in data.articles[:5]:
+        details = fetch_pubmed_details(article.pmid)
+        if not details:
+            details = {
+                "pmid": article.pmid,
+                "title": article.title or "",
+                "journal": "",
+                "pub_date": "",
+                "abstract": article.summary or "",
+            }
+        detailed_articles.append(details)
+
+    formatted_entries = []
+    for entry in detailed_articles:
+        formatted_entries.append(
+            "\n".join(
+                [
+                    f"Title: {entry.get('title') or 'Unknown'}",
+                    f"PMID: {entry.get('pmid')}",
+                    f"Journal: {entry.get('journal') or 'Unknown'}",
+                    f"Publication date: {entry.get('pub_date') or 'Unknown'}",
+                    f"Abstract: {entry.get('abstract') or 'Not available'}",
+                ]
+            )
+        )
+
+    case_context = (data.case_context or "").strip() or "No additional case context provided."
+
+    prompt = (
+        "You are assisting a surgical team preparing for a case. "
+        "Summarize the evidence from the provided PubMed articles and connect them to the case context. "
+        "Respond strictly in JSON with this shape:\n"
+        "{\n"
+        '  "overview": "One paragraph (<=120 words) synthesizing the key insights",\n'
+        '  "articles": [\n'
+        "    {\n"
+        '      "pmid": "12345",\n'
+        '      "title": "Exact article title",\n'
+        '      "key_takeaways": ["bullet max ~18 words each"],\n'
+        '      "clinical_application": "1-2 sentence suggestion tailored to the case"\n'
+        "    }\n"
+        "  ]\n"
+        "}\n"
+        "Do not fabricate data. If an abstract is missing, note that in the takeaways.\n\n"
+        f"Case context:\n{case_context}\n\n"
+        "Articles:\n"
+        + "\n\n".join(formatted_entries)
+    )
+
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You provide JSON with evidence syntheses for perioperative planning."},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.2,
+        response_format={"type": "json_object"},
+    )
+
+    content = response.choices[0].message.content
+    try:
+        payload = json.loads(content)
+    except json.JSONDecodeError:
+        payload = {
+            "overview": "",
+            "articles": [
+                {
+                    "pmid": item.get("pmid"),
+                    "title": item.get("title"),
+                    "key_takeaways": ["Unable to parse model response."],
+                    "clinical_application": "",
+                }
+                for item in detailed_articles
+            ],
+        }
+
+    return payload
